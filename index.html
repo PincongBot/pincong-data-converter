@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>品葱网站数据格式转换器</title>
+	<link rel="stylesheet" href="./lib/bootstrap-material-design.min.css">
+	<link rel="preload" href="https://cdn.jsdelivr.net/gh/pin-cong/data@master/pink.sql" as="fetch" crossorigin="anonymous">
+	<link rel="preload" href="tables.sql" as="fetch" crossorigin="anonymous">
+</head>
+
+<body>
+	<div class="container" id="app">
+
+		<div class="card" style="margin-top: 40px;">
+			<h5 class="card-header">品葱网站数据格式转换器</h5>
+
+			<div id="loading">
+				<div class="progress" style="height: 20px;">
+					<div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%; transition: none;"></div>
+				</div>
+
+				<div class="card-body">
+					加载中&nbsp;
+					<span id="resource-loaded">0</span>/<span id="resource-number">48</span>
+				</div>
+			</div>
+
+			<div id="loaded" style="display: none">
+
+				<div class="card-body">
+					<button type="button" class="btn btn-outline-dark" id="export-btn">导出为JSON</button>
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+	<script src="index.js"></script>
+	<script src="./lib/filesaver.min.js"></script>
+</body>
+
+</html>
