@@ -76,61 +76,65 @@
 
     const tableNameExp = /INSERT INTO `(.+)` VALUES/;
     const tableNameExp2 = /CREATE TABLE (?:`|")(.+)(?:`|") \(/;
+    const tableNameList = [];
 
-    dataList.forEach(async (data, index) => {
-        const sql = tableList[index] + "\n" + data;
+    await Promise.all(
+        dataList.map(async (data, index) => {
+            const sql = tableList[index] + "\n" + data;
 
-        const tableName = sql.match(tableNameExp) && sql.match(tableNameExp)[1];
+            const tableName = sql.match(tableNameExp) && sql.match(tableNameExp)[1];
 
-        const sqlLines = escapeSQLite(sql).split(/;\r?\n/);
+            const sqlLines = escapeSQLite(sql).split(/;\r?\n/);
 
-        await Promise.all(
-            sqlLines.map((s, i) => {
-                const id = `${index}-${i}`;
-                worker.postMessage({
-                    id,
-                    action: "exec",
-                    sql: s
-                });
-                return new Promise(resolve => {
-                    const cb = e => {
-                        if (e.data.id === id) {
-                            worker.removeEventListener("message", cb);
-                            resolve();
-                        }
-                    };
-                    worker.addEventListener("message", cb);
-                });
-            })
-        );
+            await Promise.all(
+                sqlLines.map((s, i) => {
+                    const id = `${index}-${i}`;
+                    worker.postMessage({
+                        id,
+                        action: "exec",
+                        sql: s
+                    });
+                    return new Promise(resolve => {
+                        const cb = e => {
+                            if (e.data.id === id) {
+                                worker.removeEventListener("message", cb);
+                                resolve();
+                            }
+                        };
+                        worker.addEventListener("message", cb);
+                    });
+                })
+            );
+
+            resourceLoadedAdd();
+
+            if (tableName) {
+                tableNameList.push(tableName);
+            } else {
+                const tableName = sql.match(tableNameExp2)[1];
+                results[tableName] = null;
+                resourceLoadedAdd();
+            }
+
+        })
+    );
+
+    for (let tableName of tableNameList) {
+        const messageId = `${tableName}-SELECT`;
+        worker.postMessage({
+            messageId,
+            action: "exec",
+            sql: `SELECT * FROM ${tableName}`
+        });
+
+        await new Promise(resolve => {
+            worker.addEventListener("message", e => {
+                results[tableName] = e.data.results[0];
+                resolve();
+            }, { once: true });
+        });
 
         resourceLoadedAdd();
-
-        if (tableName) {
-            const messageId = `${index}-SELECT`;
-            worker.postMessage({
-                messageId,
-                action: "exec",
-                sql: `SELECT * FROM ${tableName}`
-            });
-
-            await new Promise(resolve => {
-                const cb = e => {
-                    if (e.data.id === undefined) {
-                        worker.removeEventListener("message", cb);
-                        results[tableName] = e.data.results[0];
-                        resolve();
-                    }
-                };
-                worker.addEventListener("message", cb);
-            });
-        } else {
-            const tableName = sql.match(tableNameExp2)[1];
-            results[tableName] = null;
-        }
-
-        resourceLoadedAdd();
-
-    })
+    }
 
 })();
